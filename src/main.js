@@ -6,11 +6,12 @@ import CardEditComponent from './components/edit-card.js';
 import CardComponent from './components/card.js';
 import CardsComponent from './components/cards.js';
 import LoadButtonComponent from './components/load-more-btn.js';
+import NoCardsComponent from './components/no-cards.js';
 import {render, RenderPosition} from './utils.js';
 import {generateFilters} from './mock/filter.js';
 import {generateCards} from './mock/card.js';
 
-const CARD_COUNT = 22;
+const CARD_COUNT = 25;
 const SHOWING_CARDS_COUNT_ON_START = 8;
 const SHOWING_CARDS_COUNT_BY_BUTTON = 8;
 
@@ -24,10 +25,18 @@ const renderCard = (cardListElement, card) => {
     cardListElement.replaceChild(cardComponent.getElement(), cardEditComponent.getElement());
   };
 
+  const onEscKayDown = (evt) => {
+    if (evt.key === `Escape` || evt.key === `Esc`) {
+      replaceEditToCard();
+      document.removeEventListener(`keydown`, onEscKayDown);
+    }
+  };
+
   const cardComponent = new CardComponent(card);
   const editButton = cardComponent.getElement().querySelector(`.card__btn--edit`);
   editButton.addEventListener(`click`, () => {
     replaceCardToEdit();
+    document.addEventListener(`keydown`, onEscKayDown);
   });
 
   const cardEditComponent = new CardEditComponent(card);
@@ -35,12 +44,20 @@ const renderCard = (cardListElement, card) => {
   editForm.addEventListener(`submit`, (evt) => {
     evt.preventDefault();
     replaceEditToCard();
+    document.removeEventListener(`keydown`, onEscKayDown);
   });
 
   render(cardListElement, cardComponent.getElement(), RenderPosition.BEFOREEND);
 };
 
 const renderBoard = (boardComponent, cards) => {
+  const isAllCardsArchived = cards.every((card) => card.isArchive);
+
+  if (isAllCardsArchived) {
+    render(boardComponent.getElement(), new NoCardsComponent().getElement(), RenderPosition.BEFOREEND);
+    return;
+  }
+
   render(boardComponent.getElement(), new SortingComponent().getElement(), RenderPosition.BEFOREEND);
   render(boardComponent.getElement(), new CardsComponent().getElement(), RenderPosition.BEFOREEND);
 
