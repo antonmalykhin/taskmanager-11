@@ -1,8 +1,3 @@
-const RenderPosition = {
-  AFTERBEGIN: `afterbegin`,
-  BEFOREEND: `beforeend`
-};
-
 const getRandomArrayItem = (array) => {
   const randomIndex = getRandomIntegerNumber(0, array.length);
 
@@ -34,21 +29,4 @@ const formatTime = (date) => {
   return `${hours}:${minutes}`;
 };
 
-const createElement = (template) => {
-  const element = document.createElement(`div`);
-  element.innerHTML = template;
-  return element.firstChild;
-};
-
-const render = (container, element, place) => {
-  switch (place) {
-    case RenderPosition.AFTERBEGIN:
-      container.prepend(element);
-      break;
-    case RenderPosition.BEFOREEND:
-      container.append(element);
-      break;
-  }
-};
-
-export {createElement, formatTime, getRandomArrayItem, getRandomDate, render, RenderPosition};
+export {formatTime, getRandomArrayItem, getRandomDate};
