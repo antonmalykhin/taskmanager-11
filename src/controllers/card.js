@@ -4,8 +4,9 @@ import CardEditComponent from '../components/edit-card.js';
 import {render, replace, RenderPosition} from '../utils/render.js';
 
 class CardController {
-  constructor(container) {
+  constructor(container, onDataChange) {
     this._container = container;
+    this._onDataChange = onDataChange;
 
     this._cardComponent = null;
     this._cardEditComponent = null;
@@ -26,6 +27,17 @@ class CardController {
       evt.preventDefault();
       this._replaceEditToCard();
       document.removeEventListener(`keydown`, this._onEscKayDown);
+    });
+
+    this._cardComponent.setArchiveButtonClickHandler(() => {
+      this._onDataChange(this, card, Object.assign({}, card, {
+        isArchive: !card.isArchive,
+      }));
+    });
+    this._cardComponent.setEditButtonClickHandler(() => {
+      this._onDataChange(this, card, Object.assign({}, card, {
+        isFavorite: !card.isFavorite,
+      }));
     });
 
     render(this._container, this._cardComponent, RenderPosition.BEFOREEND);

@@ -9,9 +9,9 @@ import {render, remove, RenderPosition} from '../utils/render.js';
 const SHOWING_CARDS_COUNT_ON_START = 8;
 const SHOWING_CARDS_COUNT_BY_BUTTON = 8;
 
-const renderCards = (cardListElement, cards) => {
+const renderCards = (cardListElement, cards, onDataChange) => {
   return cards.map((card) => {
-    const cardController = new CardController(cardListElement);
+    const cardController = new CardController(cardListElement, onDataChange);
 
     cardController.render(card);
 
@@ -50,6 +50,7 @@ class BoardController {
     this._cardsComponent = new CardsComponent();
     this._loadMoreButtonComponent = new LoadButtonComponent();
 
+    this._onDataChange = this._onDataChange.bind(this);
     this._onSortingTypeChange = this._onSortingTypeChange.bind(this);
     this._sortingComponent.setSortingTypeChangeHandler(this._onSortingTypeChange);
   }
@@ -70,7 +71,7 @@ class BoardController {
 
     const cardListElement = this._cardsComponent.getElement();
 
-    const newCards = renderCards(cardListElement, cards.slice(0, this._showingCardsCount));
+    const newCards = renderCards(cardListElement, cards.slice(0, this._showingCardsCount), this._onDataChange);
     this._showedCardControllers = this._showedCardControllers.concat(newCards);
 
     this._renderLoadMoreButton();
@@ -89,7 +90,7 @@ class BoardController {
       this._showingCardsCount = this._showingCardsCount + SHOWING_CARDS_COUNT_BY_BUTTON;
 
       const sortedCards = getSortedCards(this._cards, this._sortingComponent.getSortingType(), prevCardsCount, this._showingCardsCount);
-      const newCards = renderCards(cardListElement, sortedCards);
+      const newCards = renderCards(cardListElement, sortedCards, this._onDataChange);
 
       this._showedCardControllers = this._showedCardControllers.concat(newCards);
 
@@ -107,10 +108,22 @@ class BoardController {
 
     cardListElement.innerHTML = ``;
 
-    const newCards = renderCards(cardListElement, sortedCards);
+    const newCards = renderCards(cardListElement, sortedCards, this._onDataChange);
     this._showedCardControllers = newCards;
 
     this._renderLoadMoreButton();
+  }
+
+  _onDataChange(cardController, oldData, newData) {
+    const index = this._cards.findIndex((it) => it === oldData);
+
+    if (index === -1) {
+      return;
+    }
+
+    this._cards = [].concat(this._cards.slice(0, index), newData, this._cards.slice(index + 1));
+
+    cardController.render(this._cards[index]);
   }
 }
 
