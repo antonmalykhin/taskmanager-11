@@ -1,51 +1,21 @@
 import CardsComponent from '../components/cards.js';
-import CardComponent from '../components/card.js';
-import CardEditComponent from '../components/edit-card.js';
+import CardController from './card.js';
 import NoCardsComponent from '../components/no-cards.js';
 import SortingComponent, {SortingType} from '../components/sorting.js';
 import LoadButtonComponent from '../components/load-more-btn.js';
 
-import {render, replace, remove, RenderPosition} from '../utils/render.js';
+import {render, remove, RenderPosition} from '../utils/render.js';
 
 const SHOWING_CARDS_COUNT_ON_START = 8;
 const SHOWING_CARDS_COUNT_BY_BUTTON = 8;
 
-const renderCard = (cardListElement, card) => {
-  const replaceCardToEdit = () => {
-    replace(cardEditComponent, cardComponent);
-  };
+const renderCards = (cardListElement, cards, onDataChange, onViewChange) => {
+  return cards.map((card) => {
+    const cardController = new CardController(cardListElement, onDataChange, onViewChange);
 
-  const replaceEditToCard = () => {
-    replace(cardComponent, cardEditComponent);
-  };
+    cardController.render(card);
 
-  const onEscKayDown = (evt) => {
-    if (evt.key === `Escape` || evt.key === `Esc`) {
-      replaceEditToCard();
-      document.removeEventListener(`keydown`, onEscKayDown);
-    }
-  };
-
-  const cardComponent = new CardComponent(card);
-  const cardEditComponent = new CardEditComponent(card);
-
-  cardComponent.setEditButtonClickHandler(() => {
-    replaceCardToEdit();
-    document.addEventListener(`keydown`, onEscKayDown);
-  });
-
-  cardEditComponent.setSubmitHandler((evt) => {
-    evt.preventDefault();
-    replaceEditToCard();
-    document.removeEventListener(`keydown`, onEscKayDown);
-  });
-
-  render(cardListElement, cardComponent, RenderPosition.BEFOREEND);
-};
-
-const renderCards = (cardListElement, cards) => {
-  cards.forEach((task) => {
-    renderCard(cardListElement, task);
+    return cardController;
   });
 };
 
@@ -72,35 +42,25 @@ class BoardController {
   constructor(container) {
     this._container = container;
 
+    this._cards = [];
+    this._showedCardControllers = [];
+    this._showingCardsCount = SHOWING_CARDS_COUNT_ON_START;
     this._noCardsComponent = new NoCardsComponent();
     this._sortingComponent = new SortingComponent();
     this._cardsComponent = new CardsComponent();
     this._loadMoreButtonComponent = new LoadButtonComponent();
+
+    this._onDataChange = this._onDataChange.bind(this);
+    this._onSortingTypeChange = this._onSortingTypeChange.bind(this);
+    this._onViewChange = this._onViewChange.bind(this);
+
+    this._sortingComponent.setSortingTypeChangeHandler(this._onSortingTypeChange);
   }
 
   render(cards) {
-    const renderLoadMoreButton = () => {
-      if (showingCardsCount >= cards.length) {
-        return;
-      }
+    this._cards = cards;
 
-      render(container, this._loadMoreButtonComponent, RenderPosition.BEFOREEND);
-
-      this._loadMoreButtonComponent.setClickHandler(() => {
-        const prevCardsCount = showingCardsCount;
-        showingCardsCount = showingCardsCount + SHOWING_CARDS_COUNT_BY_BUTTON;
-
-        const sortedCards = getSortedCards(cards, this._sortingComponent.getSortingType(), prevCardsCount, showingCardsCount);
-
-        renderCards(cardListElement, sortedCards);
-
-        if (showingCardsCount >= cards.length) {
-          remove(this._loadMoreButtonComponent);
-        }
-      });
-    };
-
-    const isAllCardsArchived = cards.every((card) => card.isArchive);
+    const isAllCardsArchived = this._cards.every((card) => card.isArchive);
     const container = this._container.getElement();
 
     if (isAllCardsArchived) {
@@ -113,21 +73,63 @@ class BoardController {
 
     const cardListElement = this._cardsComponent.getElement();
 
-    let showingCardsCount = SHOWING_CARDS_COUNT_ON_START;
+    const newCards = renderCards(cardListElement, cards.slice(0, this._showingCardsCount), this._onDataChange, this._onViewChange);
+    this._showedCardControllers = this._showedCardControllers.concat(newCards);
 
-    renderCards(cardListElement, cards.slice(0, showingCardsCount));
-    renderLoadMoreButton();
+    this._renderLoadMoreButton();
+  }
 
-    this._sortingComponent.setSortingTypeChangeHandler((sortingType) => {
-      showingCardsCount = SHOWING_CARDS_COUNT_BY_BUTTON;
+  _renderLoadMoreButton() {
+    if (this._showingCardsCount >= this._cards.length) {
+      return;
+    }
 
-      const sortedCards = getSortedCards(cards, sortingType, 0, showingCardsCount);
+    render(this._container.getElement(), this._loadMoreButtonComponent, RenderPosition.BEFOREEND);
 
-      cardListElement.innerHTML = ``;
+    this._loadMoreButtonComponent.setClickHandler(() => {
+      const prevCardsCount = this._showingCardsCount;
+      const cardListElement = this._cardsComponent.getElement();
+      this._showingCardsCount = this._showingCardsCount + SHOWING_CARDS_COUNT_BY_BUTTON;
 
-      renderCards(cardListElement, sortedCards);
-      renderLoadMoreButton();
+      const sortedCards = getSortedCards(this._cards, this._sortingComponent.getSortingType(), prevCardsCount, this._showingCardsCount);
+      const newCards = renderCards(cardListElement, sortedCards, this._onDataChange, this._onViewChange);
+
+      this._showedCardControllers = this._showedCardControllers.concat(newCards);
+
+      if (this._showingCardsCount >= this._cards.length) {
+        remove(this._loadMoreButtonComponent);
+      }
     });
+  }
+
+  _onSortingTypeChange(sortingType) {
+    this._showingCardsCount = SHOWING_CARDS_COUNT_BY_BUTTON;
+
+    const sortedCards = getSortedCards(this._cards, sortingType, 0, this._showingCardsCount);
+    const cardListElement = this._cardsComponent.getElement();
+
+    cardListElement.innerHTML = ``;
+
+    const newCards = renderCards(cardListElement, sortedCards, this._onDataChange, this._onViewChange);
+    this._showedCardControllers = newCards;
+
+    this._renderLoadMoreButton();
+  }
+
+  _onDataChange(cardController, oldData, newData) {
+    const index = this._cards.findIndex((it) => it === oldData);
+
+    if (index === -1) {
+      return;
+    }
+
+    this._cards = [].concat(this._cards.slice(0, index), newData, this._cards.slice(index + 1));
+
+    cardController.render(this._cards[index]);
+  }
+
+  _onViewChange() {
+    this._showedCardControllers.forEach((it) => it.setDefaultView());
   }
 }
 

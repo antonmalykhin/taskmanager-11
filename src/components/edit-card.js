@@ -1,6 +1,11 @@
 import {COLORS, DAYS, MONTH_NAMES} from '../const.js';
 import {formatTime} from '../utils/common.js';
-import AbstractComponent from './abstract-component.js';
+import AbstractSmartComponent from './abstract-smart-component.js';
+
+const isRepeating = (repeatingDays) => {
+  return Object.values(repeatingDays).some(Boolean);
+};
+
 
 const createColorsMarkup = (colors, currentColor) => {
   return colors
@@ -45,22 +50,22 @@ const createRepeatingDaysMarkup = (days, repeatingDays) => {
     .join(`\n`);
 };
 
-const createEditCardTemplate = (card) => {
-
-  const {description, dueDate, color, repeatingDays} = card;
+const createEditCardTemplate = (card, options = {}) => {
+  const {description, dueDate, color} = card;
+  const {isDateShowing, isRepeatingCard, activeRepeatingDays} = options;
 
   const isExpired = dueDate instanceof Date && dueDate < Date.now();
-  const isDateShowing = !!dueDate;
+  const isBlockSaveButton = (isDateShowing && isRepeatingCard) ||
+    (isRepeatingCard && !isRepeating(activeRepeatingDays));
 
-  const date = isDateShowing ? `${dueDate.getDate()} ${MONTH_NAMES[dueDate.getMonth()]}` : ``;
-  const time = isDateShowing ? formatTime(dueDate) : ``;
+  const date = (isDateShowing && dueDate) ? `${dueDate.getDate()} ${MONTH_NAMES[dueDate.getMonth()]}` : ``;
+  const time = (isDateShowing && dueDate) ? formatTime(dueDate) : ``;
 
-  const isRepeatingCard = Object.values(repeatingDays).some(Boolean);
   const repeatClass = isRepeatingCard ? `card--repeat` : ``;
   const deadlineClass = isExpired ? `card--deadline` : ``;
 
   const colorsMarkup = createColorsMarkup(COLORS, color);
-  const repeatingDaysMarkup = createRepeatingDaysMarkup(DAYS, repeatingDays);
+  const repeatingDaysMarkup = createRepeatingDaysMarkup(DAYS, activeRepeatingDays);
 
   return (
     `<article class="card card--edit card--${color} ${repeatClass} ${deadlineClass}">
@@ -123,7 +128,7 @@ const createEditCardTemplate = (card) => {
           </div>
 
           <div class="card__status-btns">
-            <button class="card__save" type="submit">save</button>
+            <button class="card__save" type="submit" ${isBlockSaveButton ? `disabled` : ``}>save</button>
             <button class="card__delete" type="button">delete</button>
           </div>
         </div>
@@ -132,19 +137,78 @@ const createEditCardTemplate = (card) => {
   );
 };
 
-class CardEdit extends AbstractComponent {
+class CardEdit extends AbstractSmartComponent {
   constructor(card) {
     super();
 
     this._card = card;
+    this._isDateShowing = !!card.dueDate;
+    this._isRepeatingCard = Object.values(card.repeatingDays).some(Boolean);
+    this._activeRepeatingDays = Object.assign({}, card.repeatingDays);
+    this._submitHandler = null;
+
+    this._subscribeOnEvents();
   }
 
   getTemplate() {
-    return createEditCardTemplate(this._card);
+    return createEditCardTemplate(this._card, {
+      isDateShowing: this._isDateShowing,
+      isRepeatingCard: this._isRepeatingCard,
+      activeRepeatingDays: this._activeRepeatingDays,
+    });
+  }
+
+  recoveryListeners() {
+    this.setSubmitHandler(this._submitHandler);
+    this._subscribeOnEvents();
+  }
+
+  rerender() {
+    super.rerender();
+  }
+
+  reset() {
+    const card = this._card;
+
+    this._isDateShowing = !!card.dueDate;
+    this._isRepeatingCard = Object.values(card.repeatingDays).some(Boolean);
+    this._activeRepeatingDays = Object.assign({}, card.repeatingDays);
+
+    this.rerender();
   }
 
   setSubmitHandler(handler) {
-    this.getElement().querySelector(`form`).addEventListener(`submit`, handler);
+    this.getElement().querySelector(`form`)
+      .addEventListener(`submit`, handler);
+
+    this._submitHandler = handler;
+  }
+
+  _subscribeOnEvents() {
+    const element = this.getElement();
+
+    element.querySelector(`.card__date-deadline-toggle`)
+      .addEventListener(`click`, () => {
+        this._isDateShowing = !this._isDateShowing;
+
+        this.rerender();
+      });
+
+    element.querySelector(`.card__repeat-toggle`)
+      .addEventListener(`click`, () => {
+        this._isRepeatingCard = !this._isRepeatingCard;
+
+        this.rerender();
+      });
+
+    const repeatDays = element.querySelector(`.card__repeat-days`);
+    if (repeatDays) {
+      repeatDays.addEventListener(`change`, (evt) => {
+        this._activeRepeatingDays[evt.target.value] = evt.target.checked;
+
+        this.rerender();
+      });
+    }
   }
 }
 
