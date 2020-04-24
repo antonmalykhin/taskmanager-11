@@ -10,8 +10,12 @@ const SHOWING_CARDS_COUNT_ON_START = 8;
 const SHOWING_CARDS_COUNT_BY_BUTTON = 8;
 
 const renderCards = (cardListElement, cards) => {
-  cards.forEach((task) => {
-    renderCard(cardListElement, task);
+  return cards.map((card) => {
+    const cardController = new CardController(cardListElement);
+
+    cardController.render(card);
+
+    return cardController;
   });
 };
 
@@ -38,35 +42,22 @@ class BoardController {
   constructor(container) {
     this._container = container;
 
+    this._cards = [];
+    this._showedCardControllers = [];
+    this._showingCardsCount = SHOWING_CARDS_COUNT_ON_START;
     this._noCardsComponent = new NoCardsComponent();
     this._sortingComponent = new SortingComponent();
     this._cardsComponent = new CardsComponent();
     this._loadMoreButtonComponent = new LoadButtonComponent();
+
+    this._onSortingTypeChange = this._onSortingTypeChange.bind(this);
+    this._sortingComponent.setSortingTypeChangeHandler(this._onSortingTypeChange);
   }
 
   render(cards) {
-    const renderLoadMoreButton = () => {
-      if (showingCardsCount >= cards.length) {
-        return;
-      }
+    this._cards = cards;
 
-      render(container, this._loadMoreButtonComponent, RenderPosition.BEFOREEND);
-
-      this._loadMoreButtonComponent.setClickHandler(() => {
-        const prevCardsCount = showingCardsCount;
-        showingCardsCount = showingCardsCount + SHOWING_CARDS_COUNT_BY_BUTTON;
-
-        const sortedCards = getSortedCards(cards, this._sortingComponent.getSortingType(), prevCardsCount, showingCardsCount);
-
-        renderCards(cardListElement, sortedCards);
-
-        if (showingCardsCount >= cards.length) {
-          remove(this._loadMoreButtonComponent);
-        }
-      });
-    };
-
-    const isAllCardsArchived = cards.every((card) => card.isArchive);
+    const isAllCardsArchived = this._cards.every((card) => card.isArchive);
     const container = this._container.getElement();
 
     if (isAllCardsArchived) {
@@ -79,21 +70,47 @@ class BoardController {
 
     const cardListElement = this._cardsComponent.getElement();
 
-    let showingCardsCount = SHOWING_CARDS_COUNT_ON_START;
+    const newCards = renderCards(cardListElement, cards.slice(0, this._showingCardsCount));
+    this._showedCardControllers = this._showedCardControllers.concat(newCards);
 
-    renderCards(cardListElement, cards.slice(0, showingCardsCount));
-    renderLoadMoreButton();
+    this._renderLoadMoreButton();
+  }
 
-    this._sortingComponent.setSortingTypeChangeHandler((sortingType) => {
-      showingCardsCount = SHOWING_CARDS_COUNT_BY_BUTTON;
+  _renderLoadMoreButton() {
+    if (this._showingCardsCount >= this._cards.length) {
+      return;
+    }
 
-      const sortedCards = getSortedCards(cards, sortingType, 0, showingCardsCount);
+    render(this._container.getElement(), this._loadMoreButtonComponent, RenderPosition.BEFOREEND);
 
-      cardListElement.innerHTML = ``;
+    this._loadMoreButtonComponent.setClickHandler(() => {
+      const prevCardsCount = this._showingCardsCount;
+      const cardListElement = this._cardsComponent.getElement();
+      this._showingCardsCount = this._showingCardsCount + SHOWING_CARDS_COUNT_BY_BUTTON;
 
-      renderCards(cardListElement, sortedCards);
-      renderLoadMoreButton();
+      const sortedCards = getSortedCards(this._cards, this._sortingComponent.getSortingType(), prevCardsCount, this._showingCardsCount);
+      const newCards = renderCards(cardListElement, sortedCards);
+
+      this._showedCardControllers = this._showedCardControllers.concat(newCards);
+
+      if (this._showingCardsCount >= this._cards.length) {
+        remove(this._loadMoreButtonComponent);
+      }
     });
+  }
+
+  _onSortingTypeChange(sortingType) {
+    this._showingCardsCount = SHOWING_CARDS_COUNT_BY_BUTTON;
+
+    const sortedCards = getSortedCards(this._cards, sortingType, 0, this._showingCardsCount);
+    const cardListElement = this._cardsComponent.getElement();
+
+    cardListElement.innerHTML = ``;
+
+    const newCards = renderCards(cardListElement, sortedCards);
+    this._showedCardControllers = newCards;
+
+    this._renderLoadMoreButton();
   }
 }
 
