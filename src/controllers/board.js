@@ -1,47 +1,13 @@
 import CardsComponent from '../components/cards.js';
-import CardComponent from '../components/card.js';
-import CardEditComponent from '../components/edit-card.js';
+import CardController from './card.js';
 import NoCardsComponent from '../components/no-cards.js';
 import SortingComponent, {SortingType} from '../components/sorting.js';
 import LoadButtonComponent from '../components/load-more-btn.js';
 
-import {render, replace, remove, RenderPosition} from '../utils/render.js';
+import {render, remove, RenderPosition} from '../utils/render.js';
 
 const SHOWING_CARDS_COUNT_ON_START = 8;
 const SHOWING_CARDS_COUNT_BY_BUTTON = 8;
-
-const renderCard = (cardListElement, card) => {
-  const replaceCardToEdit = () => {
-    replace(cardEditComponent, cardComponent);
-  };
-
-  const replaceEditToCard = () => {
-    replace(cardComponent, cardEditComponent);
-  };
-
-  const onEscKayDown = (evt) => {
-    if (evt.key === `Escape` || evt.key === `Esc`) {
-      replaceEditToCard();
-      document.removeEventListener(`keydown`, onEscKayDown);
-    }
-  };
-
-  const cardComponent = new CardComponent(card);
-  const cardEditComponent = new CardEditComponent(card);
-
-  cardComponent.setEditButtonClickHandler(() => {
-    replaceCardToEdit();
-    document.addEventListener(`keydown`, onEscKayDown);
-  });
-
-  cardEditComponent.setSubmitHandler((evt) => {
-    evt.preventDefault();
-    replaceEditToCard();
-    document.removeEventListener(`keydown`, onEscKayDown);
-  });
-
-  render(cardListElement, cardComponent, RenderPosition.BEFOREEND);
-};
 
 const renderCards = (cardListElement, cards) => {
   cards.forEach((task) => {
