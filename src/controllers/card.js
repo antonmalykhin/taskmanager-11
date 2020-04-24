@@ -3,10 +3,17 @@ import CardEditComponent from '../components/edit-card.js';
 
 import {render, replace, RenderPosition} from '../utils/render.js';
 
+const Mode = {
+  DEFAULT: `default`,
+  EDIT: `edit`,
+};
+
 class CardController {
-  constructor(container, onDataChange) {
+  constructor(container, onDataChange, onViewChange) {
     this._container = container;
     this._onDataChange = onDataChange;
+    this._onViewChange = onViewChange;
+    this._mode = Mode.DEFAULT;
 
     this._cardComponent = null;
     this._cardEditComponent = null;
@@ -15,6 +22,9 @@ class CardController {
   }
 
   render(card) {
+    const oldCardComponent = this._cardComponent;
+    const oldCardEditComponent = this._cardEditComponent;
+
     this._cardComponent = new CardComponent(card);
     this._cardEditComponent = new CardEditComponent(card);
 
@@ -26,7 +36,6 @@ class CardController {
     this._cardEditComponent.setSubmitHandler((evt) => {
       evt.preventDefault();
       this._replaceEditToCard();
-      document.removeEventListener(`keydown`, this._onEscKayDown);
     });
 
     this._cardComponent.setArchiveButtonClickHandler(() => {
@@ -34,21 +43,38 @@ class CardController {
         isArchive: !card.isArchive,
       }));
     });
+
     this._cardComponent.setEditButtonClickHandler(() => {
       this._onDataChange(this, card, Object.assign({}, card, {
         isFavorite: !card.isFavorite,
       }));
     });
 
-    render(this._container, this._cardComponent, RenderPosition.BEFOREEND);
+    if (oldCardEditComponent && oldCardComponent) {
+      replace(this._cardComponent, oldCardComponent);
+      replace(this._cardEditComponent, oldCardEditComponent);
+    } else {
+      render(this._container, this._cardComponent, RenderPosition.BEFOREEND);
+    }
+  }
+
+  setDefaultView() {
+    if (this._mode !== Mode.DEFAULT) {
+      this._replaceEditToCard();
+    }
   }
 
   _replaceCardToEdit() {
+    this._onViewChange();
     replace(this._cardEditComponent, this._cardComponent);
+    this._mode = Mode.EDIT;
   }
 
   _replaceEditToCard() {
+    document.removeEventListener(`keydown`, this._onEscKeyDown);
+    this._cardEditComponent.reset();
     replace(this._cardComponent, this._cardEditComponent);
+    this._mode = Mode.DEFAULT;
   }
 
   _onEscKayDown(evt) {

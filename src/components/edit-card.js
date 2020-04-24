@@ -167,6 +167,16 @@ class CardEdit extends AbstractSmartComponent {
     super.rerender();
   }
 
+  reset() {
+    const card = this._card;
+
+    this._isDateShowing = !!card.dueDate;
+    this._isRepeatingCard = Object.values(card.repeatingDays).some(Boolean);
+    this._activeRepeatingDays = Object.assign({}, card.repeatingDays);
+
+    this.rerender();
+  }
+
   setSubmitHandler(handler) {
     this.getElement().querySelector(`form`)
       .addEventListener(`submit`, handler);
