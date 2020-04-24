@@ -10,7 +10,7 @@ class CardController {
     this._cardComponent = null;
     this._cardEditComponent = null;
 
-    this._onEcsKeyDown = this._onEcsKeyDown.bind(this);
+    this._onEscKayDown = this._onEscKayDown.bind(this);
   }
 
   render(card) {
