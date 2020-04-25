@@ -1,11 +1,13 @@
-import {COLORS, DAYS, MONTH_NAMES} from '../const.js';
-import {formatTime} from '../utils/common.js';
+import {COLORS, DAYS} from '../const.js';
+import {formatTime, formatDate} from '../utils/common.js';
 import AbstractSmartComponent from './abstract-smart-component.js';
+
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/themes/dark.css';
 
 const isRepeating = (repeatingDays) => {
   return Object.values(repeatingDays).some(Boolean);
 };
-
 
 const createColorsMarkup = (colors, currentColor) => {
   return colors
@@ -58,7 +60,7 @@ const createEditCardTemplate = (card, options = {}) => {
   const isBlockSaveButton = (isDateShowing && isRepeatingCard) ||
     (isRepeatingCard && !isRepeating(activeRepeatingDays));
 
-  const date = (isDateShowing && dueDate) ? `${dueDate.getDate()} ${MONTH_NAMES[dueDate.getMonth()]}` : ``;
+  const date = (isDateShowing && dueDate) ? formatDate(dueDate) : ``;
   const time = (isDateShowing && dueDate) ? formatTime(dueDate) : ``;
 
   const repeatClass = isRepeatingCard ? `card--repeat` : ``;
@@ -146,7 +148,9 @@ class CardEdit extends AbstractSmartComponent {
     this._isRepeatingCard = Object.values(card.repeatingDays).some(Boolean);
     this._activeRepeatingDays = Object.assign({}, card.repeatingDays);
     this._submitHandler = null;
+    this._flatpickr = null;
 
+    this._applyFlatpickr();
     this._subscribeOnEvents();
   }
 
@@ -165,6 +169,8 @@ class CardEdit extends AbstractSmartComponent {
 
   rerender() {
     super.rerender();
+
+    this._applyFlatpickr();
   }
 
   reset() {
@@ -182,6 +188,22 @@ class CardEdit extends AbstractSmartComponent {
       .addEventListener(`submit`, handler);
 
     this._submitHandler = handler;
+  }
+
+  _applyFlatpickr() {
+    if (this._flatpickr) {
+      this._flatpickr.destroy();
+      this._flatpickr = null;
+    }
+
+    if (this._isDateShowing) {
+      const dateElement = this.getElement().querySelector(`.card__date`);
+      this._flatpickr = flatpickr(dateElement, {
+        altInput: true,
+        allowInput: true,
+        defaultDate: this._card.dueDate || `today`,
+      });
+    }
   }
 
   _subscribeOnEvents() {
