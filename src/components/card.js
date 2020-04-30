@@ -1,5 +1,6 @@
-import {formatTime, formatDate} from '../utils/common.js';
+import {formatTime, formatDate, isOverdueDate} from '../utils/common.js';
 import AbstractComponent from './abstract-component.js';
+import {encode} from 'he';
 
 const createButtonTemplate = (name, isActive = true) => {
   return (
@@ -11,9 +12,11 @@ const createButtonTemplate = (name, isActive = true) => {
 
 const createCardTemplate = (card) => {
 
-  const {description, dueDate, repeatingDays, color} = card;
+  const {description: notEncodedDescription, dueDate, repeatingDays, color} = card;
 
-  const isExpired = dueDate instanceof Date && dueDate < Date.now();
+  const description = encode(notEncodedDescription);
+
+  const isExpired = dueDate instanceof Date && isOverdueDate(dueDate, new Date());
   const isDateShowing = !!dueDate;
 
   const date = isDateShowing ? formatDate(dueDate) : ``;
