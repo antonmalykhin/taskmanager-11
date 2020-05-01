@@ -189,6 +189,7 @@ class BoardController {
   }
 
   show() {
+    this._onSortingTypeChange(SortingType.DEFAULT);
     this._container.show();
   }
 
