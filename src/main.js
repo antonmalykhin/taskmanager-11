@@ -32,11 +32,13 @@ const boardController = new BoardController(boardComponent, cardsModel);
 boardController.render();
 
 const dateTo = new Date();
+
 const dateFrom = (() => {
   const d = new Date(dateTo);
   d.setDate(d.getDate() - 7);
   return d;
 })();
+
 const statisticsComponent = new StatisticsComponent({cards: cardsModel, dateFrom, dateTo});
 render(siteMainElement, statisticsComponent, RenderPosition.BEFOREEND);
 statisticsComponent.hide();
