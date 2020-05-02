@@ -187,6 +187,15 @@ class BoardController {
   _onFilterChange() {
     this._updateCards(SHOWING_CARDS_COUNT_ON_START);
   }
+
+  show() {
+    this._onSortingTypeChange(SortingType.DEFAULT);
+    this._container.show();
+  }
+
+  hide() {
+    this._container.hide();
+  }
 }
 
 export default BoardController;
