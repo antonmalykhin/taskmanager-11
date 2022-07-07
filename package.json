@@ -17,7 +17,7 @@
     "eslint-config-htmlacademy": "0.5.2",
     "flatpickr": "4.6.3",
     "he": "1.2.0",
-    "moment": "2.24.0",
+    "moment": "2.29.4",
     "moment-locales-webpack-plugin": "1.2.0",
     "style-loader": "1.2.0",
     "stylelint-config-htmlacademy": "0.1.4",
